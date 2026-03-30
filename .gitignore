@@ -1,9 +1,18 @@
+# Claude Code
+.claude/
+
+# macOS
+.DS_Store
+
 # Frontend / Node
 node_modules/
 dist/
 .env.local
 .env.*.local
 *.tsbuildinfo
+
+# Live API test cache
+.api_cache/
 
 # SQLite database files
 *.db

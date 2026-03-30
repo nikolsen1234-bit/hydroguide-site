@@ -1,14 +1,18 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.db import engine
+from app.db import async_session_factory, engine
 from app.middleware.session import SessionMiddleware
 from app.models.database import Base
-from app.routers import health
+from app.routers import analyze, config_router, health
+
+STATIC_DIR = Path(__file__).parent.parent / "static"
 
 
 @asynccontextmanager
@@ -20,6 +24,9 @@ async def lifespan(app: FastAPI):
     # Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Store session factory on app state so middleware can access it
+    app.state.async_session_factory = async_session_factory
 
     yield
 
@@ -48,3 +55,17 @@ app.add_middleware(SessionMiddleware)
 
 # Routers
 app.include_router(health.router)
+app.include_router(config_router.router)
+app.include_router(analyze.router)
+
+# Serve built frontend (only if static dir exists, i.e. Docker build)
+if STATIC_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/{path:path}")
+    async def serve_spa(request: Request, path: str):
+        """Serve static files or fall back to index.html for SPA routing."""
+        file_path = STATIC_DIR / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(STATIC_DIR / "index.html")
