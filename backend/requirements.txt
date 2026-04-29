@@ -9,7 +9,7 @@ alembic==1.18.4
 httpx==0.28.1
 openpyxl==3.1.5
 orjson==3.11.7
-python-multipart==0.0.22
+python-multipart==0.0.26
 pyjwt==2.12.1
 sse-starlette==3.3.3
 rich==14.3.3
